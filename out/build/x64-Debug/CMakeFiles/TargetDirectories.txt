@@ -1,0 +1,3 @@
+C:/Users/29185/Desktop/外包/dead_code/out/build/x64-Debug/CMakeFiles/deadcode.dir
+C:/Users/29185/Desktop/外包/dead_code/out/build/x64-Debug/CMakeFiles/edit_cache.dir
+C:/Users/29185/Desktop/外包/dead_code/out/build/x64-Debug/CMakeFiles/rebuild_cache.dir
