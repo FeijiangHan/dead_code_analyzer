@@ -34,18 +34,22 @@ void dead_code_analysis_t::addDeadCode(int index,const memref_t obj ) {
 }
 
 void dead_code_analysis_t::initAddrReadWrite_thread(memref_t memref){
-    // 1.构造tid-addr的pair
-    std::pair<memref_tid_t,addr_t> pair_tid_addr(memref.data.tid, memref.data.addr);
-    // 2.初始化构建map的key
-    addr_read_write[pair_tid_addr] = new read_write();
-    if (memref.data.type == TRACE_TYPE_READ) {
-        addr_read_write[pair_tid_addr]->read = true;
-    } else if (memref.data.type == TRACE_TYPE_WRITE) {
-        addr_read_write[pair_tid_addr]->write = true;
-        addr_read_write[pair_tid_addr]->index_write = number.allCodeNumber;
-    }
-    // 3.记录本次操作的类型
-    addr_read_write[pair_tid_addr]->obj = memref; // read
+  // Construct thread id - address pair
+  std::pair<memref_tid_t,addr_t> pair_tid_addr(memref.data.tid, memref.data.addr);
+
+  // Get address map for thread, create if needed
+  addr_read_write[pair_tid_addr] = addr_read_write[pair_tid_addr] ?: new read_write();
+
+  // Record read or write access
+  if (memref.data.type == TRACE_TYPE_READ) {
+    addr_read_write[pair_tid_addr]->read = true;
+  } else if (memref.data.type == TRACE_TYPE_WRITE) {  
+    addr_read_write[pair_tid_addr]->write = true;
+    addr_read_write[pair_tid_addr]->index_write = number.allCodeNumber; 
+  }
+  
+  // Save reference  
+  addr_read_write[pair_tid_addr]->obj = memref;
 }
 
 string get_register(xed_decoded_inst_t* xedd) {
@@ -83,6 +87,7 @@ string get_register(xed_decoded_inst_t* xedd) {
     }
 }
 
+#define BUFLEN  1000
 string get_reg(memref_t memref){
 //    // 1. state initialization
 //    xed_state_t dstate;
@@ -107,13 +112,14 @@ string get_reg(memref_t memref){
 
     printf("Attempting to decode: ");
     for(int i=0; i<memref.instr.size;i++) {
-        cout << hex << reinterpret_cast<xed_uint8_t>(memref.instr.encoding[i]) << " ";
+        std::cout << hex << reinterpret_cast<xed_uint8_t>(memref.instr.encoding[i]) << " ";
     }
-    cout << endl;
+    std::cout << std::endl;
 
     xed_error_enum_t xed_error = xed_decode(&xedd,reinterpret_cast<const xed_uint8_t*>(memref.instr.encoding),memref.instr.size);
 
     if (xed_error != XED_ERROR_NONE) {
+        // Note: Here I add some color code for showing in the command line
         cout << "\033[31m" << "error: " << " code size: " << memref.instr.size << "\033[0m" << endl;
         cout << "\033[31m" << "error code => [" << "\033[0m";
         for (int i = 0; i < memref.instr.size; i++) {
@@ -190,7 +196,7 @@ string get_reg(memref_t memref){
             break;
         }
     }
-#define BUFLEN  1000
+
     char buffer[BUFLEN];
     xed_decoded_inst_dump(&xedd,buffer, BUFLEN);
     printf("%s\n",buffer);
@@ -246,7 +252,14 @@ int get_memref_type(const memref_t& memref){
     }
 }
 
-
+/*******************************************************
+*** Detects dead code for the given memory reference ***
+*** This is the core dead code detection logic       ***
+*** Simple dead code detection based on:             ***
+***    - Repeated reads (read after read)            ***
+***    - Repeated writes (write after write)         ***
+*** More advanced detection can be added here        ***
+********************************************************/
 void dead_code_analysis_t::detectDeadCode_thread(memref_t memref)
 {
     //int type = get_memref_type(memref);
@@ -255,23 +268,7 @@ void dead_code_analysis_t::detectDeadCode_thread(memref_t memref)
 
     //cout << endl;
     number.allCodeNumber++; // counts
-    if (false) // instruction
-    {
-//        ins_memref = memref;
-//        cout << "\033[34m" << "addr: " << ins_memref.instr.addr << endl
-//             << "code: " << "\033[0m" ;
-//        for (int i = 0; i < ins_memref.instr.size; i++) {
-//            bitset<8> bits(ins_memref.instr.encoding[i]);
-//            cout << "\033[34m" << bits << "\033[0m" << " ";
-//        }
-//        cout << endl;
 
-//        cout << "\033[33m=======BEGIN DECODING=======\033[0m" << endl;
-//        string reg = get_reg(ins_memref);
-//        cout << "\033[33m[REG]: " << reg << "\033[0m" << endl;
-//        cout << "\033[33m=======END DECODING=======\033[0m" << endl << endl;
-
-    }
     if ((memref.data.type >= TRACE_TYPE_INSTR && memref.data.type <= TRACE_TYPE_INSTR_RETURN) ||
         memref.data.type == TRACE_TYPE_INSTR_SYSENTER) {
         cout << "{type: }" << memref.data.type << endl;
@@ -289,11 +286,6 @@ void dead_code_analysis_t::detectDeadCode_thread(memref_t memref)
         cout << "\033[33m=======END DECODING=======\033[0m" << endl << endl;
     }
     else if (memref.data.type == TRACE_TYPE_READ || memref.data.type == TRACE_TYPE_WRITE){ // 数据操纵-读or写
-
-//        cout << "\033[33m=======BEGIN DECODING=======\033[0m" << endl;
-//        string reg = get_reg(ins_memref);
-//        cout << "\033[33m[REG]: " << reg << "\033[0m" << endl;
-//        cout << "\033[33m=======END DECODING=======\033[0m" << endl << endl;
 
         // 1.construct tid-addr的pair
         std::pair<memref_tid_t,addr_t> pair_tid_addr(memref.data.tid, memref.data.addr);

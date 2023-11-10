@@ -46,38 +46,46 @@ struct CodeNumber {
 };
 
 
-// 定义pair_hash
+// Hash function for pair objects
 struct pair_hash {
-    template <class T1, class T2>
-    std::size_t operator()(const std::pair<T1, T2> &p) const {
-        return std::hash<T1>()(p.first) ^ std::hash<T2>()(p.second);
-    }
+  template <class T1, class T2>
+  std::size_t operator()(const std::pair<T1, T2>& p) const {
+    return std::hash<T1>()(p.first) ^ std::hash<T2>()(p.second);
+  }
 };
 
 class dead_code_analysis_t : public analysis_tool_t {
 public:
+    // Constructor
     dead_code_analysis_t();
+    // Destructor
     virtual ~dead_code_analysis_t();
-    bool
-    process_memref(const memref_t &memref) override;
-    bool
-    print_results() override;
-
+    // Processes a memory reference
+    bool process_memref(const memref_t& memref) override;
+    // Prints analysis results 
+    bool print_results() override;
 protected:
+    // Number of read references
     uint64_t num_read_refs_;
+    // Number of write references
     uint64_t num_write_refs_;
-
 private:
+    // Counts for analysis stats
     CodeNumber number;
-    std::unordered_map<std::pair<memref_tid_t,addr_t>,read_write*,pair_hash> addr_read_write;
+    // Map of address reads/writes per thread
+    std::unordered_map<std::pair<memref_tid_t,addr_t>, read_write*, pair_hash> addr_read_write;
+    // Sorted dead code instructions
     std::vector<deadCode> sorted_deadCode;
-    memref_t ins_memref; // 某读写memref对应的指令
-    void addDeadCode(int index,const memref_t obj ); // 添加死指令到数组中
-
-    void initAddrReadWrite_thread(memref_t memref); // 初始化map
-
-    void detectDeadCode_thread(memref_t memref); // 检测死指令逻辑
+    // Instruction corresponding to a memref
+    memref_t ins_memref;
+    // Adds dead code 
+    void addDeadCode(int index, const memref_t obj);
+    // Initializes address mapping for thread
+    void initAddrReadWrite_thread(memref_t memref);
+    // Detects dead code
+    void detectDeadCode_thread(memref_t memref);
 };
+
 /** Creates an instance of a TLB simulator. */
 analysis_tool_t *
 dead_code_analysis_create(void);
