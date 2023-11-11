@@ -27,7 +27,7 @@
 
 
 **Here is a poster of me showcasing my work during NCSU GEARE training:**
-![poster-Feijiang Han](https://gitee.com/han-feijiang/img-store/raw/master/2023/poster-Feijiang%20Han.png)
+![poster-Feijiang Han](https://github.com/FeijiangHan/dead_code_analyzer/blob/main/poster-Feijiang%20Han.png)
 
 
 **The process can be summarized as follows:**
